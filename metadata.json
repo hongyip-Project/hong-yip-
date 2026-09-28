@@ -1,0 +1,6 @@
+{
+  "name": "SynapseAI - Smart Spaced Repetition & Flashcard Studio",
+  "description": "AI-powered document analysis, OCR lecture notes parsing, and adaptive spaced-repetition flashcards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
