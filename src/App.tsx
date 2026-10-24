@@ -3,42 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Layers,
   UploadCloud,
   Sparkles,
-  Clock,
-  CheckCircle2,
-  Brain,
   Search,
   Plus,
-  ArrowRight,
-  TrendingUp,
   Zap,
-  Filter,
+  ArrowRight,
+  Layers,
 } from 'lucide-react';
-import { Deck, Flashcard } from './types/flashcard';
+import { Deck } from './types/flashcard';
 import {
   getStoredDecks,
   saveDeck,
   deleteDeck as deleteStoredDeck,
   resetDeckProgress,
-  saveStoredDecks,
 } from './lib/storage';
-import { isCardDue, calculateDeckStats } from './lib/spacedRepetition';
+import { isCardDue } from './lib/spacedRepetition';
 import { Navbar } from './components/Navbar';
 import { DeckCard } from './components/DeckCard';
 import { DocumentUploadView } from './components/DocumentUploadView';
 import { FlashcardStudySession } from './components/FlashcardStudySession';
 import { DeckManagerModal } from './components/DeckManagerModal';
-import { AnalyticsDashboard } from './components/AnalyticsDashboard';
-import { AlgorithmGuideModal } from './components/AlgorithmGuideModal';
 import { ImportExportModal } from './components/ImportExportModal';
 
 export default function App() {
   const [decks, setDecks] = useState<Deck[]>(() => getStoredDecks());
-  const [activeTab, setActiveTab] = useState<'decks' | 'upload' | 'analytics' | 'algorithm'>('decks');
+  const [activeTab, setActiveTab] = useState<'decks' | 'upload'>('decks');
 
   // Active study session
   const [activeStudySession, setActiveStudySession] = useState<{
@@ -64,10 +56,6 @@ export default function App() {
       return acc + dueCards.length;
     }, 0);
   }, [decks]);
-
-  // Overall aggregate stats
-  const allCards = useMemo(() => decks.flatMap((d) => d.cards), [decks]);
-  const overallStats = useMemo(() => calculateDeckStats(allCards), [allCards]);
 
   // Unique topics
   const topics = useMemo(() => {
@@ -131,7 +119,7 @@ export default function App() {
     setActiveStudySession({ deck, onlyDue: false, initialMode: 'flip' });
   };
 
-  // Find a deck with due cards to study now
+  // Quick start studying due cards
   const handleStudyDueToday = () => {
     const deckWithDue = decks.find((d) => d.cards.some((c) => isCardDue(c)));
     if (deckWithDue) {
@@ -160,7 +148,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
-        {/* If Active Study Session is running, render study interface */}
+        {/* If Active Study Session is running, render study player */}
         {activeStudySession ? (
           <FlashcardStudySession
             deck={activeStudySession.deck}
@@ -170,154 +158,124 @@ export default function App() {
             onClose={() => setActiveStudySession(null)}
           />
         ) : activeTab === 'upload' ? (
-          /* Document Upload & Multimodal OCR View */
+          /* Generate from Document View */
           <DocumentUploadView
             onDeckCreated={handleDeckCreated}
             onStartStudyImmediately={handleStartStudyImmediately}
           />
-        ) : activeTab === 'analytics' ? (
-          /* Memory Retention Analytics Dashboard */
-          <AnalyticsDashboard
-            decks={decks}
-            onStudyDeck={(deck) =>
-              setActiveStudySession({ deck, onlyDue: false, initialMode: 'flip' })
-            }
-          />
-        ) : activeTab === 'algorithm' ? (
-          /* SM-2 Spaced Repetition Mechanics Guide */
-          <AlgorithmGuideModal onClose={() => setActiveTab('decks')} />
         ) : (
-          /* Decks Home Dashboard */
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
-            {/* Hero Quick Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-indigo-950/50 border border-indigo-500/25 p-6 sm:p-8 shadow-2xl">
-              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold mb-3 border border-indigo-500/30">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-                    <span>Adaptive Spaced Repetition (SuperMemo SM-2)</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-                    Master Complex Lectures with Active Recall
+          /* Simplified "My Decks" View */
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-fade-in">
+            {/* Header with Title and Quick Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                    My Decks
                   </h1>
-                  <p className="mt-2 text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                    Upload documents or slides to extract key terms, formulas, and concepts into smart flashcards.
-                    Our algorithm adjusts each card's review interval based on your personal recall retention.
-                  </p>
-
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={handleStudyDueToday}
-                      className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
-                    >
-                      <Zap className="w-4 h-4 fill-current text-white" />
-                      <span>{totalDueCount > 0 ? `Study ${totalDueCount} Due Cards` : 'Start Review Session'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => setActiveTab('upload')}
-                      className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 flex items-center gap-2 transition-colors"
-                    >
-                      <UploadCloud className="w-4 h-4 text-cyan-400" />
-                      <span>Upload Notes & OCR</span>
-                    </button>
-                  </div>
+                  {decks.length > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      {decks.length} {decks.length === 1 ? 'deck' : 'decks'}
+                    </span>
+                  )}
                 </div>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Upload your study materials, lecture slides, or notes to create active recall flashcards.
+                </p>
+              </div>
 
-                {/* Quick Snapshot Metrics */}
-                <div className="grid grid-cols-2 gap-3 min-w-[280px]">
-                  <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block font-medium">Due for Review</span>
-                    <strong className="text-2xl font-black text-amber-400">{totalDueCount}</strong>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">Needs recall</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block font-medium">Avg Retrievability</span>
-                    <strong className="text-2xl font-black text-cyan-400">
-                      {overallStats.averageRetention > 0 ? `${overallStats.averageRetention}%` : 'New'}
-                    </strong>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">Ebbinghaus retention</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block font-medium">Mastered Cards</span>
-                    <strong className="text-2xl font-black text-emerald-400">
-                      {overallStats.masteredCount}
-                    </strong>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">Interval &gt; 14 days</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block font-medium">Total Flashcards</span>
-                    <strong className="text-2xl font-black text-white">{overallStats.total}</strong>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">In {decks.length} decks</span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2.5">
+                {totalDueCount > 0 && (
+                  <button
+                    onClick={handleStudyDueToday}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span>Study Due Cards ({totalDueCount})</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white flex items-center gap-2 shadow-md shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Generate from Document</span>
+                </button>
               </div>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-md">
-                <div className="relative w-full">
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+            {/* If decks exist: show search & filters */}
+            {decks.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder="Search decks, topics, or terms..."
+                    placeholder="Search decks or topics..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
                   />
                 </div>
-              </div>
 
-              {/* Topic Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs">
-                <button
-                  onClick={() => setSelectedTopic('all')}
-                  className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
-                    selectedTopic === 'all'
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  All Topics ({decks.length})
-                </button>
-                {topics.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setSelectedTopic(t)}
-                    className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
-                      selectedTopic === t
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
+                {topics.length > 1 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs">
+                    <button
+                      onClick={() => setSelectedTopic('all')}
+                      className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition-all ${
+                        selectedTopic === 'all'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      All ({decks.length})
+                    </button>
+                    {topics.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setSelectedTopic(t)}
+                        className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition-all ${
+                          selectedTopic === t
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Decks Grid */}
-            {filteredDecks.length === 0 ? (
-              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-12 text-center">
-                <Layers className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-white mb-1">No decks found</h3>
-                <p className="text-xs text-slate-400 mb-6 max-w-sm mx-auto">
-                  {searchQuery
-                    ? 'No decks match your search criteria. Try a different query.'
-                    : 'Upload a lecture PDF, slides, or scanned notes to create your first deck.'}
+            {/* Decks Grid or Empty State */}
+            {decks.length === 0 ? (
+              /* Clean Empty State */
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-12 text-center max-w-xl mx-auto my-8 shadow-xl">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto mb-4">
+                  <UploadCloud className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">No flashcard decks yet</h2>
+                <p className="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+                  Upload your lecture slides, scanned handwritten notes (PDF, image), or paste study text.
+                  The AI will automatically extract key terms and create an adaptive spaced-repetition deck.
                 </p>
                 <button
                   onClick={() => setActiveTab('upload')}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-xs shadow-lg shadow-indigo-500/20 inline-flex items-center gap-2 transition-all hover:scale-105"
                 >
-                  Upload Lecture Notes
+                  <Sparkles className="w-4 h-4 text-cyan-300" />
+                  <span>Generate Your First Deck</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
+            ) : filteredDecks.length === 0 ? (
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-xs">
+                No decks matched "{searchQuery}". Try a different search term.
+              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredDecks.map((deck) => (
                   <DeckCard
                     key={deck.id}

@@ -38,10 +38,14 @@ app.post('/api/analyze-document', async (req, res) => {
       fileData,
       mimeType,
       textContent,
-      deckFocus = 'Comprehensive Balance',
+      difficulty = 'Medium',
+      deckFocus = 'Medium',
       cardCount = 8,
-      targetAudience = 'Undergraduate / College',
+      targetAudience = 'Cambridge IGCSE & Checkpoint',
     } = req.body;
+
+    const chosenDifficulty = (req.body.difficulty || req.body.deckFocus || 'Medium').toString();
+    const targetCount = Math.max(1, Math.min(20, parseInt(String(cardCount), 10) || 8));
 
     if (!fileData && (!textContent || !textContent.trim())) {
       return res.status(400).json({ error: 'Please provide either a document file or lecture text content.' });
@@ -63,21 +67,24 @@ app.post('/api/analyze-document', async (req, res) => {
     const sanitizedText = textContent ? textContent.slice(0, 16000) : '';
 
     const promptText = `
-Quickly analyze this study material (lecture notes, document, or scanned image).
-Perform high-speed OCR/NLP and extract ${cardCount} active-recall flashcard pairs.
+Analyze this study material (syllabus notes, past papers, textbook excerpt, or scanned notes).
+Extract exactly ${targetCount} active-recall flashcard pairs calibrated strictly to Cambridge IGCSE & Checkpoint standards.
 
 Specs:
-- Mode: ${deckFocus}
-- Card Count: Exactly ${cardCount} cards
-- Level: ${targetAudience}
+- Curriculum & Standard: Cambridge IGCSE & Checkpoint (use syllabus terminology, clear mark-scheme precision, and IGCSE command words like State, Define, Describe, Explain, Calculate)
+- Target Card Count: Exactly ${targetCount} cards
+- Difficulty Level: ${chosenDifficulty}
+  * If Easy: Direct recall, core definitions, basic Checkpoint concepts, essential vocabulary.
+  * If Medium: Standard Cambridge IGCSE exam questions, process descriptions, formula applications.
+  * If Hard: Advanced IGCSE exam challenge, multi-step explanations, nuanced distinctions, strict mark-scheme points.
 
-Flashcard Rules:
-1. "front": Crisp, direct question or concept recall prompt.
-2. "back": Concise 1-2 sentence core explanation.
-3. "keyFormulaOrLaw": Formula/equation if present, otherwise empty string.
-4. "mnemonicOrHint": Short memory hook (acronym, association, or clue).
-5. "conceptCategory": Short topic category.
-6. "difficultyLevel": "easy" | "medium" | "hard".
+Speed & Conciseness Rules (High Efficiency):
+1. "front": Direct, crisp question (under 18 words) using IGCSE command words.
+2. "back": Concise, high-yield mark-scheme answer (1-2 sentences, under 30 words).
+3. "keyFormulaOrLaw": Formula or equation if present, otherwise empty string.
+4. "mnemonicOrHint": Short memory clue (under 8 words).
+5. "conceptCategory": Short topic or syllabus section.
+6. "difficultyLevel": "${chosenDifficulty.toLowerCase()}".
 ${sanitizedText ? `\nContent excerpt:\n"""\n${sanitizedText}\n"""` : ''}
     `;
 
@@ -115,29 +122,29 @@ ${sanitizedText ? `\nContent excerpt:\n"""\n${sanitizedText}\n"""` : ''}
 
     let response;
     try {
-      // Primary model: gemini-3.8-flash with ThinkingLevel.LOW for low-latency speed
-      response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: contents,
-        config: {
-          systemInstruction:
-            'You are a high-speed spaced repetition educator. Swiftly extract high-yield concepts into concise flashcards with structured JSON.',
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-          responseSchema: sharedResponseSchema,
-        },
-      });
-    } catch (primaryErr: any) {
-      console.warn('Primary model slow or unavailable in analyze-document, falling back to gemini-3.1-flash-lite:', primaryErr?.message);
-      // High-speed fallback model
+      // Primary model: gemini-3.1-flash-lite for ultra-fast, high-efficiency generation
       response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-lite',
         contents: contents,
         config: {
           systemInstruction:
-            'You are a high-speed spaced repetition educator. Swiftly extract high-yield concepts into concise flashcards with structured JSON.',
+            'You are an expert Cambridge IGCSE and Checkpoint educator. Swiftly extract high-yield syllabus concepts and concise mark-scheme definitions into flashcards with structured JSON.',
           responseMimeType: 'application/json',
           thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          responseSchema: sharedResponseSchema,
+        },
+      });
+    } catch (liteErr: any) {
+      console.warn('Lite model busy, trying gemini-3.8-flash:', liteErr?.message);
+      // Secondary fallback model
+      response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: contents,
+        config: {
+          systemInstruction:
+            'You are an expert Cambridge IGCSE and Checkpoint educator. Swiftly extract high-yield syllabus concepts and concise mark-scheme definitions into flashcards with structured JSON.',
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
           responseSchema: sharedResponseSchema,
         },
       });

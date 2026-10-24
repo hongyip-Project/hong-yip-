@@ -1,23 +1,21 @@
 import { Deck, Flashcard } from '../types/flashcard';
-import { INITIAL_SAMPLE_DECKS } from '../data/sampleDecks';
 
-const STORAGE_KEY = 'synapse_flashcard_decks_v1';
+const STORAGE_KEY = 'synapse_flashcard_decks_v3';
 
 export function getStoredDecks(): Deck[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      saveStoredDecks(INITIAL_SAMPLE_DECKS);
-      return INITIAL_SAMPLE_DECKS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed;
     }
-    return INITIAL_SAMPLE_DECKS;
+    return [];
   } catch (err) {
     console.error('Failed to load decks from localStorage:', err);
-    return INITIAL_SAMPLE_DECKS;
+    return [];
   }
 }
 
@@ -114,7 +112,6 @@ export function importDecksFromJson(jsonStr: string): { success: boolean; count:
     if (!Array.isArray(parsed)) {
       return { success: false, count: 0, error: 'JSON root must be an array of decks.' };
     }
-    // Simple schema validation
     const validDecks: Deck[] = parsed.filter(
       (d) => d && typeof d.id === 'string' && typeof d.title === 'string' && Array.isArray(d.cards)
     );

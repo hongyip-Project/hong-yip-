@@ -11,7 +11,6 @@ import {
   Check,
 } from 'lucide-react';
 import { exportDecksToJson, importDecksFromJson, saveStoredDecks } from '../lib/storage';
-import { INITIAL_SAMPLE_DECKS } from '../data/sampleDecks';
 import { Deck } from '../types/flashcard';
 
 interface ImportExportModalProps {
@@ -33,7 +32,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `synapse_decks_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `flashcard_ai_decks_backup_${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -67,12 +66,12 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     }
   };
 
-  const handleResetToSampleDecks = () => {
-    if (confirm('Restore sample academic decks? Any custom decks will be replaced.')) {
-      saveStoredDecks(INITIAL_SAMPLE_DECKS);
-      onRefreshDecks(INITIAL_SAMPLE_DECKS);
-      setMessage({ type: 'success', text: 'Sample decks restored.' });
-      setTimeout(() => onClose(), 800);
+  const handleClearAllDecks = () => {
+    if (confirm('Are you sure you want to clear all decks? This cannot be undone.')) {
+      saveStoredDecks([]);
+      onRefreshDecks([]);
+      setMessage({ type: 'success', text: 'All decks cleared.' });
+      setTimeout(() => onClose(), 600);
     }
   };
 
@@ -164,15 +163,15 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           </button>
         </div>
 
-        {/* Reset Defaults */}
+        {/* Reset / Clear */}
         <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">Need to restore default sample decks?</span>
+          <span className="text-[11px] text-slate-500">Need to start fresh?</span>
           <button
-            onClick={handleResetToSampleDecks}
-            className="px-3 py-1 rounded-lg border border-slate-800 text-amber-400 hover:bg-slate-800 text-xs flex items-center gap-1.5"
+            onClick={handleClearAllDecks}
+            className="px-3 py-1 rounded-lg border border-slate-800 text-rose-400 hover:bg-slate-800 text-xs flex items-center gap-1.5"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset to Pre-loaded Decks</span>
+            <span>Clear All Decks</span>
           </button>
         </div>
       </div>
